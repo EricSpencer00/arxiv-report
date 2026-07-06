@@ -1,0 +1,11 @@
+import { Hono } from "hono";
+import type { Env } from "./types";
+
+const app = new Hono<{ Bindings: Env }>();
+
+app.get("/api/health", (c) => c.json({ ok: true }));
+
+export default {
+  fetch: app.fetch,
+  scheduled: async () => {},
+} satisfies ExportedHandler<Env>;

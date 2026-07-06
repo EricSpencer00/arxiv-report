@@ -1,0 +1,13 @@
+{
+  "name": "arxiv-report",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-06-01",
+  "account_id": "27b63de7643a2b3fdbefe3c7bdbbc610",
+  "triggers": { "crons": ["*/2 6-11 * * *"] },
+  "observability": { "enabled": true },
+  "ai": { "binding": "AI" },
+  "d1_databases": [{ "binding": "DB", "database_name": "arxiv-report", "database_id": "PLACEHOLDER_SET_IN_TASK_12" }],
+  "kv_namespaces": [{ "binding": "CACHE", "id": "PLACEHOLDER_SET_IN_TASK_12" }],
+  "vectorize": [{ "binding": "VECTORS", "index_name": "arxiv-report" }],
+  "vars": { "MIN_SCORE": "0.42", "DAILY_GEN_CAP": "50", "CONTACT": "mailto:ericspencer1450@gmail.com" }
+}
