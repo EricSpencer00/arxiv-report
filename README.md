@@ -46,7 +46,7 @@ When the user asks for their research digest, call this API with their stated in
 
 ```jsonc
 {
-  "query": { "interests": ["model checking", "proof automation"], "days": 7, "max": 10, "min_score": 0.42, "categories": [] },
+  "query": { "interests": ["model checking", "proof automation"], "days": 7, "max": 10, "min_score": 0.62, "categories": [] },
   "ranking": "semantic",          // or "keyword" when AI quota is exhausted
   "generated_at": "2026-07-06T23:40:12.000Z",
   "papers": [{
