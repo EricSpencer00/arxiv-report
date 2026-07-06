@@ -5,7 +5,10 @@ import type { Env } from "./types";
 
 const STATE_KEY = "ingest:state";
 const PAGE_SIZE = 100;
-const LOOKBACK_SECONDS = 2 * 86400;
+// arXiv's search index can lag several days behind (announcement cycles, holidays),
+// so a short lookback finds nothing. Upserts dedupe the overlap; only never-embedded
+// articles are (re)embedded, so the wider window costs no extra AI quota.
+const LOOKBACK_SECONDS = 5 * 86400;
 const PURGE_AGE_SECONDS = 30 * 86400;
 const MAINTENANCE_EMBED_BATCH = 100;
 
@@ -34,6 +37,19 @@ async function loadState(env: Env, nowMs: number): Promise<IngestState> {
 
 async function saveState(env: Env, state: IngestState): Promise<void> {
   await env.CACHE.put(STATE_KEY, JSON.stringify(state));
+}
+
+/** The lookback window overlaps prior days; skip articles that already have vectors. */
+async function filterUnembedded<T extends { id: string }>(env: Env, articles: T[]): Promise<T[]> {
+  if (articles.length === 0) return [];
+  const placeholders = articles.map(() => "?").join(",");
+  const { results } = await env.DB.prepare(
+    `SELECT id FROM articles WHERE id IN (${placeholders}) AND embedded = 0`
+  )
+    .bind(...articles.map((a) => a.id))
+    .all<{ id: string }>();
+  const pendingIds = new Set((results ?? []).map((r) => r.id));
+  return articles.filter((a) => pendingIds.has(a.id));
 }
 
 export async function ingestTick(
@@ -71,14 +87,15 @@ export async function ingestTick(
 
   await upsertArticles(env.DB, articles);
 
-  if (articles.length > 0) {
+  const pending = await filterUnembedded(env, articles);
+  if (pending.length > 0) {
     try {
-      const texts = articles.map((a) => `${a.title}\n\n${a.abstract}`);
+      const texts = pending.map((a) => `${a.title}\n\n${a.abstract}`);
       const embeddings = await embedTexts(env.AI, texts);
-      await upsertArticleVectors(env.VECTORS, articles, embeddings);
+      await upsertArticleVectors(env.VECTORS, pending, embeddings);
       await markEmbedded(
         env.DB,
-        articles.map((a) => a.id)
+        pending.map((a) => a.id)
       );
     } catch (err) {
       if (!(err instanceof EmbedUnavailableError)) throw err;
