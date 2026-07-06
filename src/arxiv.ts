@@ -21,7 +21,7 @@ function formatArxivTimestamp(ts: number): string {
 export function buildQueryUrl(start: number, pageSize: number, sinceTs: number): string {
   const since = formatArxivTimestamp(sinceTs);
   return (
-    `http://export.arxiv.org/api/query?search_query=submittedDate:[${since}+TO+*]` +
+    `https://export.arxiv.org/api/query?search_query=submittedDate:[${since}+TO+*]` +
     `&start=${start}&max_results=${pageSize}&sortBy=submittedDate&sortOrder=ascending`
   );
 }
