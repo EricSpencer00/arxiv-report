@@ -31,7 +31,7 @@ Agent integration: the landing page has a copy-paste prompt block that teaches a
 ## Architecture
 
 - **Ingest:** cron every 2 min (06:00–11:58 UTC); each tick fetches one 100-article page from `export.arxiv.org/api/query` (well under arXiv's 1 req/3s limit), stores rows in D1, embeds with Workers AI `bge-small-en-v1.5` into Vectorize. After the day's pages are done, ticks run maintenance (embed retries, 30-day D1 purge, ~7-day vector prune to stay in the free 5M-dimension budget).
-- **Query:** normalize → edge cache (TTL until next ingest) → embed interests → Vectorize top-K per interest → max-merge → threshold → D1 join → lazy enrichment (TL;DR + relevance blurb via Workers AI, capped 50 generations/day; author affiliation via OpenAlex) → cache.
+- **Query:** normalize → edge cache (TTL until next ingest) → embed interests → Vectorize top-K per interest → max-merge → threshold → D1 join → lazy enrichment (TL;DR + relevance blurb via Workers AI, capped 50 generations/day; author affiliation via Semantic Scholar) → cache.
 - **Fallback:** any Workers AI/Vectorize failure or quota exhaustion → weighted keyword + arXiv-category-affinity scoring over D1. Deterministic, zero inference.
 
 Everything fits Cloudflare's free plan. Bindings: D1 (`DB`), KV (`CACHE`), Vectorize (`VECTORS`, 384 dims cosine + `published_ts` number metadata index), Workers AI (`AI`).

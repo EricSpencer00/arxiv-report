@@ -1,10 +1,11 @@
 import { saveAuthorNotes, saveTldr } from "./db";
 import type { Env, RankedPaper } from "./types";
 
-export const GEN_MODEL = "@cf/meta/llama-3.1-8b-instruct";
+// llama-3.1-8b was deprecated by Workers AI on 2026-05-30
+export const GEN_MODEL = "@cf/meta/llama-3.2-3b-instruct";
 
 const BUDGET_TTL_SECONDS = 172800; // 2 days
-const OPENALEX_TIMEOUT_MS = 3000;
+const AUTHOR_LOOKUP_TIMEOUT_MS = 3000;
 
 function todayUtc(): string {
   return new Date().toISOString().slice(0, 10);
@@ -62,7 +63,8 @@ async function generateTldrAndBlurb(
     const tldr = typeof parsed.tldr === "string" ? parsed.tldr : null;
     const blurb = typeof parsed.why === "string" ? parsed.why : null;
     return { tldr, blurb };
-  } catch {
+  } catch (err) {
+    console.error("tldr generation failed", err instanceof Error ? err.message : String(err));
     return { tldr: null, blurb: null };
   }
 }
@@ -79,7 +81,8 @@ async function generateBlurbOnly(
     const parsed = extractJsonBlock(text) as { why?: unknown } | null;
     if (!parsed) return null;
     return typeof parsed.why === "string" ? parsed.why : null;
-  } catch {
+  } catch (err) {
+    console.error("blurb generation failed", err instanceof Error ? err.message : String(err));
     return null;
   }
 }
@@ -89,27 +92,24 @@ async function fetchAuthorNotes(
   firstAuthor: string,
   fetchFn: typeof fetch
 ): Promise<Record<string, string> | null> {
-  const mailto = (env.CONTACT ?? "").replace(/^mailto:/, "");
-  const url = `https://api.openalex.org/authors?search=${encodeURIComponent(firstAuthor)}&per-page=1&mailto=${encodeURIComponent(mailto)}`;
+  // Semantic Scholar Graph API (free, no key). OpenAlex switched to paid credits in 2026.
+  const url = `https://api.semanticscholar.org/graph/v1/author/search?query=${encodeURIComponent(firstAuthor)}&fields=name,affiliations,paperCount&limit=1`;
 
   const controller = new AbortController();
-  const timeout = setTimeout(() => controller.abort(), OPENALEX_TIMEOUT_MS);
+  const timeout = setTimeout(() => controller.abort(), AUTHOR_LOOKUP_TIMEOUT_MS);
   try {
     const res = await fetchFn(url, { signal: controller.signal });
     if (!res.ok) return null;
     const data = (await res.json()) as {
-      results?: {
-        display_name?: string;
-        works_count?: number;
-        last_known_institutions?: { display_name?: string }[];
-      }[];
+      data?: { name?: string; affiliations?: string[]; paperCount?: number }[];
     };
-    const first = data.results?.[0];
+    const first = data.data?.[0];
     if (!first) return null;
-    const affiliation = first.last_known_institutions?.[0]?.display_name ?? "unknown affiliation";
-    const worksCount = first.works_count ?? 0;
-    return { [firstAuthor]: `${affiliation} — ${worksCount} works` };
-  } catch {
+    const affiliation = first.affiliations?.[0] ?? "unknown affiliation";
+    const worksCount = first.paperCount ?? 0;
+    return { [firstAuthor]: `${affiliation} — ${worksCount} papers` };
+  } catch (err) {
+    console.error("openalex lookup failed", err instanceof Error ? err.message : String(err));
     return null;
   } finally {
     clearTimeout(timeout);

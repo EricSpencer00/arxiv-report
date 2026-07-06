@@ -81,7 +81,7 @@ describe("enrichPapers", () => {
     }));
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "5" });
 
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
 
@@ -107,7 +107,7 @@ describe("enrichPapers", () => {
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "1" });
     await consumeBudget(testEnv.CACHE, 1); // exhaust budget
 
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
 
     expect(result[0].tldr).toBeNull();
@@ -123,7 +123,7 @@ describe("enrichPapers", () => {
     const run = vi.fn(async () => ({ response: "not json at all {{{" }));
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "5" });
 
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
     await expect(enrichPapers(testEnv, [paper], ["formal methods"], fetchFn)).resolves.toBeDefined();
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
@@ -140,7 +140,7 @@ describe("enrichPapers", () => {
       response: `Sure! Here you go: {"tldr": "Extracted tldr.", "why": "Extracted why."} Hope that helps.`,
     }));
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "5" });
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
     expect(result[0].tldr).toBe("Extracted tldr.");
@@ -157,7 +157,7 @@ describe("enrichPapers", () => {
 
     const run = vi.fn(async () => ({ response: JSON.stringify({ why: "Matches because X." }) }));
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "5" });
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
     expect(result[0].tldr).toBe("Existing tldr from before.");
@@ -174,7 +174,7 @@ describe("enrichPapers", () => {
     const run = vi.fn(async () => ({ response: JSON.stringify({ why: "should not be called" }) }));
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "1" });
     await consumeBudget(testEnv.CACHE, 1);
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
     expect(result[0].tldr).toBe("Existing tldr.");
@@ -193,15 +193,15 @@ describe("enrichPapers", () => {
     const testEnv = buildEnv({ AI: fakeAi(run), DAILY_GEN_CAP: "5", CONTACT: "mailto:test@example.com" });
 
     const fetchFn = vi.fn(async (url: string | URL | Request) => {
-      expect(String(url)).toContain("api.openalex.org/authors");
-      expect(String(url)).toContain("mailto=test%40example.com");
+      expect(String(url)).toContain("api.semanticscholar.org/graph/v1/author/search");
+
       return new Response(
         JSON.stringify({
-          results: [
+          data: [
             {
               display_name: "Jane Researcher",
-              works_count: 42,
-              last_known_institutions: [{ display_name: "Example University" }],
+              paperCount: 42,
+              affiliations: ["Example University"],
             },
           ],
         }),
@@ -211,11 +211,11 @@ describe("enrichPapers", () => {
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
     expect(result[0].author_notes).toEqual({
-      "Jane Researcher": "Example University — 42 works",
+      "Jane Researcher": "Example University — 42 papers",
     });
 
     const [stored] = await getByIds(env.DB, ["auth1"]);
-    expect(stored.author_notes).toEqual({ "Jane Researcher": "Example University — 42 works" });
+    expect(stored.author_notes).toEqual({ "Jane Researcher": "Example University — 42 papers" });
   });
 
   it("OpenAlex timeout leaves author_notes null and does not throw", async () => {
@@ -250,7 +250,7 @@ describe("enrichPapers", () => {
     await env.DB.prepare("UPDATE articles SET tldr = ? WHERE id = ?").bind("x", "auth3").run();
 
     const testEnv = buildEnv({ AI: fakeAi(async () => ({ response: "{}" })), DAILY_GEN_CAP: "5" });
-    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ results: [] }), { status: 200 }));
+    const fetchFn = vi.fn(async () => new Response(JSON.stringify({ data: [] }), { status: 200 }));
 
     const result = await enrichPapers(testEnv, [paper], ["formal methods"], fetchFn);
     expect(result[0].author_notes).toBeNull();
