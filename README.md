@@ -2,7 +2,7 @@
 
 Interest-matched arXiv papers for your AI agent. Free, cached, honest about relevance.
 
-**Live:** https://arxiv-report.stockgenie.workers.dev
+**Live:** https://arxiv.ericspencer.us
 
 A Cloudflare Worker that ingests every new arXiv submission daily (via the official arXiv API), embeds abstracts with a 384-dim model, and serves the top ≤10 papers matching plain-English interests — with a deterministic keyword fallback whenever AI quota is exhausted, so the API never breaks.
 
@@ -10,10 +10,10 @@ A Cloudflare Worker that ingests every new arXiv submission daily (via the offic
 
 ```bash
 # JSON
-curl "https://arxiv-report.stockgenie.workers.dev/api/papers?interests=formal+methods,llm+verification&days=7&max=10"
+curl "https://arxiv.ericspencer.us/api/papers?interests=formal+methods,llm+verification&days=7&max=10"
 
 # Markdown digest (agent/aggregator friendly)
-curl "https://arxiv-report.stockgenie.workers.dev/api/digest?interests=formal+methods,llm+verification"
+curl "https://arxiv.ericspencer.us/api/digest?interests=formal+methods,llm+verification"
 ```
 
 | Param | Meaning | Range / default |
@@ -24,7 +24,7 @@ curl "https://arxiv-report.stockgenie.workers.dev/api/digest?interests=formal+me
 | `min_score` | relevance threshold | 0–1, default 0.62 |
 | `categories` | arXiv category filter, e.g. `cs.LO,cs.PL` | optional |
 
-Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://arxiv-report.stockgenie.workers.dev/api/openapi.json). Health: `/api/health`.
+Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://arxiv.ericspencer.us/api/openapi.json). Health: `/api/health`.
 
 ### Give it to your agent
 
@@ -32,12 +32,12 @@ Paste this into any AI agent (OpenClaw, Claude, a news aggregator) and it can in
 
 ```
 You now have access to the arxiv-report API for fresh research papers.
-Base URL: https://arxiv-report.stockgenie.workers.dev
-To get papers: GET https://arxiv-report.stockgenie.workers.dev/api/papers?interests=<comma-separated interest phrases>&days=7&max=10
+Base URL: https://arxiv.ericspencer.us
+To get papers: GET https://arxiv.ericspencer.us/api/papers?interests=<comma-separated interest phrases>&days=7&max=10
 - interests: required. Plain-English phrases, e.g. "formal methods,LLM verification"
 - days: 1-30 lookback window (default 7). max: 1-10 results (default 10)
 Response is JSON: papers[] with title, authors, abstract, tldr, relevance_blurb, score (0-1), abs_url.
-For a ready-made Markdown digest instead: GET https://arxiv-report.stockgenie.workers.dev/api/digest?interests=...
+For a ready-made Markdown digest instead: GET https://arxiv.ericspencer.us/api/digest?interests=...
 Papers below the relevance threshold are omitted — an empty list means nothing relevant appeared, not an error.
 When the user asks for their research digest, call this API with their stated interests and present the results with links.
 ```
