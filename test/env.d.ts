@@ -7,6 +7,7 @@ import type { Env as AppEnv } from "../src/types";
 
 declare global {
   namespace Cloudflare {
-    interface Env extends Pick<AppEnv, "DB" | "CACHE" | "MIN_SCORE" | "DAILY_GEN_CAP" | "CONTACT"> {}
+    interface Env
+      extends Pick<AppEnv, "DB" | "CACHE" | "MIN_SCORE" | "DAILY_GEN_CAP" | "CONTACT" | "ADMIN_SECRET"> {}
   }
 }

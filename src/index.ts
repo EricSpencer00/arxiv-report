@@ -1,10 +1,11 @@
 import { Hono } from "hono";
+import api from "./api";
 import { ingestTick } from "./ingest";
 import type { Env } from "./types";
 
 const app = new Hono<{ Bindings: Env }>();
 
-app.get("/api/health", (c) => c.json({ ok: true }));
+app.route("/", api);
 
 export default {
   fetch: app.fetch,
