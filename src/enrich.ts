@@ -44,9 +44,27 @@ function extractJsonBlock(text: string): unknown | null {
 
 function extractResponseText(raw: unknown): string {
   if (typeof raw === "string") return raw;
-  const response = (raw as { response?: unknown })?.response;
-  if (typeof response === "string") return response;
+  const obj = raw as {
+    response?: unknown;
+    choices?: { text?: unknown; message?: { content?: unknown } }[];
+  };
+  if (typeof obj?.response === "string") return obj.response;
+  const choice = obj?.choices?.[0];
+  if (typeof choice?.message?.content === "string") return choice.message.content;
+  if (typeof choice?.text === "string") return choice.text;
   return "";
+}
+
+const JSON_SYSTEM_PROMPT = "You reply with a single valid JSON object and nothing else.";
+
+function genInput(prompt: string): { messages: { role: string; content: string }[]; max_tokens: number } {
+  return {
+    messages: [
+      { role: "system", content: JSON_SYSTEM_PROMPT },
+      { role: "user", content: prompt },
+    ],
+    max_tokens: 300,
+  };
 }
 
 async function generateTldrAndBlurb(
@@ -56,7 +74,7 @@ async function generateTldrAndBlurb(
 ): Promise<{ tldr: string | null; blurb: string | null }> {
   const prompt = `Given this paper for a reader interested in "${interests.join(", ")}", return JSON {"tldr": "<2-3 plain-English sentences>", "why": "<one sentence on why it matches the interests>"}. Title: ${paper.title} Abstract: ${paper.abstract}`;
   try {
-    const raw = await env.AI.run(GEN_MODEL as never, { prompt } as never);
+    const raw = await env.AI.run(GEN_MODEL as never, genInput(prompt) as never);
     const text = extractResponseText(raw);
     const parsed = extractJsonBlock(text) as { tldr?: unknown; why?: unknown } | null;
     if (!parsed) return { tldr: null, blurb: null };
@@ -76,7 +94,7 @@ async function generateBlurbOnly(
 ): Promise<string | null> {
   const prompt = `Given this paper for a reader interested in "${interests.join(", ")}", return JSON {"why": "<one sentence on why it matches the interests>"}. Title: ${paper.title} Abstract: ${paper.abstract}`;
   try {
-    const raw = await env.AI.run(GEN_MODEL as never, { prompt } as never);
+    const raw = await env.AI.run(GEN_MODEL as never, genInput(prompt) as never);
     const text = extractResponseText(raw);
     const parsed = extractJsonBlock(text) as { why?: unknown } | null;
     if (!parsed) return null;
