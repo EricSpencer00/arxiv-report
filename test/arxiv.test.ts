@@ -5,10 +5,10 @@ import FIXTURE_XML from "./fixtures/atom-sample.xml?raw";
 
 describe("buildQueryUrl", () => {
   it("builds the exact expected query URL", () => {
-    // sinceTs = 2025-07-01T00:00:00Z = 1751328000
-    const url = buildQueryUrl(0, 100, 1751328000);
+    // sinceTs = 2025-07-01T00:00:00Z = 1751328000; untilTs one day later
+    const url = buildQueryUrl(0, 100, 1751328000, 1751328000 + 86400);
     expect(url).toBe(
-      "https://export.arxiv.org/api/query?search_query=submittedDate:[202507010000+TO+*]&start=0&max_results=100&sortBy=submittedDate&sortOrder=ascending"
+      "https://export.arxiv.org/api/query?search_query=submittedDate:[202507010000+TO+202507020000]&start=0&max_results=100&sortBy=submittedDate&sortOrder=ascending"
     );
   });
 

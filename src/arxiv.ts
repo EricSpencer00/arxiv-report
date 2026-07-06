@@ -18,10 +18,17 @@ function formatArxivTimestamp(ts: number): string {
   return `${year}${month}${day}${hour}${minute}`;
 }
 
-export function buildQueryUrl(start: number, pageSize: number, sinceTs: number): string {
+export function buildQueryUrl(
+  start: number,
+  pageSize: number,
+  sinceTs: number,
+  untilTs: number = Math.floor(Date.now() / 1000) + 86400
+): string {
+  // arXiv's API 500s on open-ended ranges like [X TO *]; both bounds must be explicit.
   const since = formatArxivTimestamp(sinceTs);
+  const until = formatArxivTimestamp(untilTs);
   return (
-    `https://export.arxiv.org/api/query?search_query=submittedDate:[${since}+TO+*]` +
+    `https://export.arxiv.org/api/query?search_query=submittedDate:[${since}+TO+${until}]` +
     `&start=${start}&max_results=${pageSize}&sortBy=submittedDate&sortOrder=ascending`
   );
 }
