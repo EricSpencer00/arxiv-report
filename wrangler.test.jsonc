@@ -5,7 +5,7 @@
   "d1_databases": [{ "binding": "DB", "database_name": "arxiv-report", "database_id": "test-db-id" }],
   "kv_namespaces": [{ "binding": "CACHE", "id": "test-kv-id" }],
   "vars": {
-    "MIN_SCORE": "0.42",
+    "MIN_SCORE": "0.62",
     "DAILY_GEN_CAP": "50",
     "CONTACT": "mailto:ericspencer1450@gmail.com",
     "ADMIN_SECRET": "test-admin-secret"

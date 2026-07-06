@@ -48,10 +48,18 @@ async function hasCoverageGap(db: Env["DB"], sinceTs: number): Promise<boolean> 
   return (row?.c ?? 0) >= 1;
 }
 
+// Keyword scores live on a different scale than bge-small cosine similarity
+// (unrelated abstracts already score ~0.55 semantically, so the semantic default
+// is 0.62; a strong keyword match can legitimately score 0.45). When the caller
+// left min_score at the server default, use the keyword-appropriate threshold.
+const KEYWORD_MIN_SCORE = 0.42;
+
 async function keywordRank(env: Env, q: NormalizedQuery, sinceTs: number): Promise<(Article & { score: number })[]> {
+  const usingServerDefault = q.min_score === Number(env.MIN_SCORE);
+  const threshold = usingServerDefault ? KEYWORD_MIN_SCORE : q.min_score;
   const articles = await getByWindow(env.DB, sinceTs, q.categories);
   const scored = articles.map((article) => ({ ...article, score: keywordScore(q.interests, article) }));
-  const filtered = scored.filter((a) => a.score >= q.min_score);
+  const filtered = scored.filter((a) => a.score >= threshold);
   return stableSortByScoreThenPublished(filtered).slice(0, q.max);
 }
 

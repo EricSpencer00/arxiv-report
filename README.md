@@ -21,7 +21,7 @@ curl "https://arxiv-report.stockgenie.workers.dev/api/digest?interests=formal+me
 | `interests` | comma-separated plain-English phrases (required) | ≤5 phrases, ≤100 chars each |
 | `days` | lookback window | 1–30, default 7 |
 | `max` | max papers returned | 1–10, default 10 |
-| `min_score` | relevance threshold | 0–1, default 0.42 |
+| `min_score` | relevance threshold | 0–1, default 0.62 |
 | `categories` | arXiv category filter, e.g. `cs.LO,cs.PL` | optional |
 
 Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://arxiv-report.stockgenie.workers.dev/api/openapi.json). Health: `/api/health`.

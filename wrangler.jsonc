@@ -9,5 +9,5 @@
   "d1_databases": [{ "binding": "DB", "database_name": "arxiv-report", "database_id": "f1769b20-6d06-4ee4-969b-ab7489b7cd6d" }],
   "kv_namespaces": [{ "binding": "CACHE", "id": "2ed0ccc8fb9141a4b60e4cf8a00e6236" }],
   "vectorize": [{ "binding": "VECTORS", "index_name": "arxiv-report" }],
-  "vars": { "MIN_SCORE": "0.42", "DAILY_GEN_CAP": "50", "CONTACT": "mailto:ericspencer1450@gmail.com" }
+  "vars": { "MIN_SCORE": "0.62", "DAILY_GEN_CAP": "50", "CONTACT": "mailto:ericspencer1450@gmail.com" }
 }
