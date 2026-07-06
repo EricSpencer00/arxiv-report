@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns="http://www.w3.org/2005/Atom" xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/" xmlns:arxiv="http://arxiv.org/schemas/atom">
+  <link href="http://arxiv.org/api/query?search_query%3Dsubmitted..." rel="self" type="application/atom+xml"/>
+  <title type="html">ArXiv Query: search_query=submittedDate:[202507010000+TO+*]</title>
+  <id>http://arxiv.org/api/query?search_query...</id>
+  <updated>2025-07-06T00:00:00-04:00</updated>
+  <opensearch:totalResults xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">3</opensearch:totalResults>
+  <opensearch:startIndex xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">0</opensearch:startIndex>
+  <opensearch:itemsPerPage xmlns:opensearch="http://a9.com/-/spec/opensearch/1.1/">100</opensearch:itemsPerPage>
+  <entry>
+    <id>http://arxiv.org/abs/2507.01234v1</id>
+    <updated>2025-07-01T12:00:00Z</updated>
+    <published>2025-07-01T12:00:00Z</published>
+    <title>LLM-Guided Formal Verification of Smart Contracts</title>
+    <summary>  We present a novel approach that combines large language models
+  with formal methods to verify smart contracts.  Our technique
+  reduces manual annotation effort significantly.
+  </summary>
+    <author>
+      <name>Alice Smith</name>
+      <arxiv:affiliation>MIT</arxiv:affiliation>
+    </author>
+    <author>
+      <name>Bob Jones</name>
+    </author>
+    <author>
+      <name>Carol White</name>
+    </author>
+    <link href="http://arxiv.org/abs/2507.01234v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2507.01234v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="cs.LO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.LO" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.PL" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="cs.AI" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2507.05678v2</id>
+    <updated>2025-07-02T08:30:00Z</updated>
+    <published>2025-07-02T08:30:00Z</published>
+    <title>Stellar dynamics in globular clusters</title>
+    <summary>A study of stellar dynamics within dense globular clusters using N-body simulations.</summary>
+    <author>
+      <name>Dana Lee</name>
+    </author>
+    <link href="http://arxiv.org/abs/2507.05678v2" rel="alternate" type="text/html"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="astro-ph.GA" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="astro-ph.GA" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+  <entry>
+    <id>http://arxiv.org/abs/2507.09999v1</id>
+    <updated>2025-07-03T15:45:00Z</updated>
+    <published>2025-07-03T15:45:00Z</published>
+    <title>On the $\ell_1$-Norm Minimization
+   Problem for Sparse Recovery in Über-Complete Dictionaries</title>
+    <summary>  This paper studies the $\ell_1$-norm minimization problem
+   for sparse recovery.  We show that über-complete dictionaries
+   with unicode characters like café and naïve
+  can still be handled robustly.
+  </summary>
+    <author>
+      <name>Erik Müller</name>
+    </author>
+    <link href="http://arxiv.org/abs/2507.09999v1" rel="alternate" type="text/html"/>
+    <link title="pdf" href="http://arxiv.org/pdf/2507.09999v1" rel="related" type="application/pdf"/>
+    <arxiv:primary_category xmlns:arxiv="http://arxiv.org/schemas/atom" term="math.NA" scheme="http://arxiv.org/schemas/atom"/>
+    <category term="math.NA" scheme="http://arxiv.org/schemas/atom"/>
+  </entry>
+</feed>
