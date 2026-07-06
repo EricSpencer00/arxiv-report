@@ -26,7 +26,43 @@ curl "https://arxiv-report.stockgenie.workers.dev/api/digest?interests=formal+me
 
 Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://arxiv-report.stockgenie.workers.dev/api/openapi.json). Health: `/api/health`.
 
-Agent integration: the landing page has a copy-paste prompt block that teaches any agent the API in one paste.
+### Give it to your agent
+
+Paste this into any AI agent (OpenClaw, Claude, a news aggregator) and it can integrate the API itself:
+
+```
+You now have access to the arxiv-report API for fresh research papers.
+Base URL: https://arxiv-report.stockgenie.workers.dev
+To get papers: GET https://arxiv-report.stockgenie.workers.dev/api/papers?interests=<comma-separated interest phrases>&days=7&max=10
+- interests: required. Plain-English phrases, e.g. "formal methods,LLM verification"
+- days: 1-30 lookback window (default 7). max: 1-10 results (default 10)
+Response is JSON: papers[] with title, authors, abstract, tldr, relevance_blurb, score (0-1), abs_url.
+For a ready-made Markdown digest instead: GET https://arxiv-report.stockgenie.workers.dev/api/digest?interests=...
+Papers below the relevance threshold are omitted — an empty list means nothing relevant appeared, not an error.
+When the user asks for their research digest, call this API with their stated interests and present the results with links.
+```
+
+### Example response
+
+```jsonc
+{
+  "query": { "interests": ["model checking", "proof automation"], "days": 7, "max": 10, "min_score": 0.42, "categories": [] },
+  "ranking": "semantic",          // or "keyword" when AI quota is exhausted
+  "generated_at": "2026-07-06T23:40:12.000Z",
+  "papers": [{
+    "id": "2607.01234",
+    "title": "Reformalization of the Jordan Curve Theorem",
+    "authors": ["Simon Guilloud", "..."],
+    "score": 0.694,
+    "tldr": "Researchers reformalized the Jordan Curve Theorem in three proof assistants...",
+    "relevance_blurb": "Matches your interest in proof automation because...",
+    "author_notes": { "Simon Guilloud": "EPFL — 15 papers" },
+    "abstract": "...", "categories": ["cs.LO"], "published": "2026-07-02T17:12:00Z",
+    "abs_url": "https://arxiv.org/abs/2607.01234v1", "pdf_url": "https://arxiv.org/pdf/2607.01234v1"
+  }],
+  "attribution": "Thank you to arXiv for use of its open access interoperability."
+}
+```
 
 ## Architecture
 
