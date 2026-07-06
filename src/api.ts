@@ -7,6 +7,7 @@ import { enrichPapers, budgetRemaining } from "./enrich";
 import { renderDigest } from "./digest";
 import { buildOpenApiDocument } from "./openapi";
 import { ingestTick } from "./ingest";
+import { renderPage } from "./page";
 import type { Env, PapersResponse, RankedPaper } from "./types";
 
 const ATTRIBUTION = "Thank you to arXiv for use of its open access interoperability.";
@@ -15,6 +16,11 @@ const STATE_KEY = "ingest:state";
 const app = new Hono<{ Bindings: Env }>();
 
 app.use("/api/*", cors());
+
+app.get("/", (c) => {
+  const origin = new URL(c.req.url).origin;
+  return c.html(renderPage(origin));
+});
 
 app.get("/api/health", async (c) => {
   const rawState = await c.env.CACHE.get(STATE_KEY);
