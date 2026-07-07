@@ -1,4 +1,5 @@
 import { ATTRIBUTION } from "./attribution";
+import { PRESET_INTERESTS } from "./keywords";
 
 function agentPrompt(origin: string): string {
   return `You now have access to the arxiv-report API for fresh research papers.
@@ -37,6 +38,11 @@ r = requests.get(
 )
 for paper in r.json()["papers"]:
     print(f"{paper['score']:.2f}", paper["title"], paper["abs_url"])`;
+
+  const presetButtons = PRESET_INTERESTS.map(
+    (p) =>
+      `<button type="button" class="preset" data-preset="${escapeHtml(p)}">${escapeHtml(p)}</button>`,
+  ).join("\n      ");
 
   return `<!doctype html>
 <html lang="en">
@@ -249,6 +255,97 @@ for paper in r.json()["papers"]:
   button:hover { filter: brightness(1.08); }
   button:disabled { opacity: 0.6; cursor: default; }
 
+  .tag-input {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.4rem;
+    width: 100%;
+    min-height: 2.4rem;
+    padding: 0.3rem 0.4rem;
+    border: 1px solid var(--rule);
+    border-radius: 4px;
+    background: var(--bg);
+    cursor: text;
+  }
+  .tag-input:focus-within { border-color: var(--accent); }
+
+  #try-it-form .tag-input input#interest-input {
+    flex: 1 1 10ch;
+    min-width: 10ch;
+    width: auto;
+    height: auto;
+    border: none;
+    background: transparent;
+    padding: 0.2rem 0.15rem;
+  }
+  #try-it-form .tag-input input#interest-input:focus { outline: none; }
+
+  .chip {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    background: var(--surface);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    padding: 0.1rem 0.25rem 0.1rem 0.6rem;
+    font-size: 0.85rem;
+    line-height: 1.5;
+    max-width: 100%;
+  }
+  .chip-label { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+  .chip-remove {
+    all: unset;
+    cursor: pointer;
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    color: var(--ink-dim);
+    width: 1.15rem;
+    height: 1.15rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 50%;
+    flex: none;
+  }
+  .chip-remove:hover { background: var(--accent); color: var(--bg); filter: none; }
+
+  .presets {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
+    margin-top: 0.9rem;
+  }
+  .presets-label {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    margin-right: 0.1rem;
+  }
+  .preset {
+    font: inherit;
+    font-size: 0.82rem;
+    padding: 0.2rem 0.7rem;
+    background: transparent;
+    color: var(--link);
+    border: 1px solid var(--rule);
+    border-radius: 999px;
+    cursor: pointer;
+    line-height: 1.5;
+  }
+  .preset:hover { border-color: var(--accent); color: var(--accent); filter: none; }
+  .preset[hidden] { display: none; }
+
+  .interest-hint {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.75rem;
+    color: var(--ink-dim);
+    margin: 0.5rem 0 0;
+    min-height: 1.1em;
+  }
+
   #results { margin-top: 1.5rem; }
 
   .status-line {
@@ -366,8 +463,10 @@ for paper in r.json()["papers"]:
     <h2><span class="num">02</span>Try it</h2>
     <form id="try-it-form" onsubmit="return false;">
       <div class="field grow">
-        <label for="interests">interests</label>
-        <input type="text" id="interests" placeholder="formal methods, LLM verification">
+        <label for="interest-input">interests</label>
+        <div id="interest-tags" class="tag-input">
+          <input type="text" id="interest-input" placeholder="type a topic or pick a suggestion" autocomplete="off" aria-label="Add an interest">
+        </div>
       </div>
       <div class="field">
         <label for="days">days</label>
@@ -389,6 +488,11 @@ for paper in r.json()["papers"]:
       </div>
       <button type="button" id="fetch-btn">Fetch papers</button>
     </form>
+    <div id="interest-presets" class="presets" aria-label="Suggested topics">
+      <span class="presets-label">suggestions</span>
+      ${presetButtons}
+    </div>
+    <p id="interest-hint" class="interest-hint" role="status" aria-live="polite"></p>
     <div id="results"></div>
   </section>
 
@@ -467,9 +571,100 @@ for paper in r.json()["papers"]:
 
   var fetchBtn = document.getElementById("fetch-btn");
   var resultsEl = document.getElementById("results");
-  var interestsEl = document.getElementById("interests");
   var daysEl = document.getElementById("days");
   var maxEl = document.getElementById("max");
+
+  var tagBox = document.getElementById("interest-tags");
+  var inputEl = document.getElementById("interest-input");
+  var presetsEl = document.getElementById("interest-presets");
+  var hintEl = document.getElementById("interest-hint");
+
+  var MAX_INTERESTS = 5;
+  var MAX_LEN = 100;
+  var interests = [];
+
+  function hasInterest(value) {
+    var lower = value.toLowerCase();
+    return interests.some(function (i) { return i.toLowerCase() === lower; });
+  }
+
+  function setHint(text) {
+    hintEl.textContent = text || "";
+  }
+
+  function syncPresets() {
+    var q = inputEl.value.trim().toLowerCase();
+    presetsEl.querySelectorAll(".preset").forEach(function (btn) {
+      var value = btn.getAttribute("data-preset") || "";
+      var matchesQuery = q === "" || value.toLowerCase().indexOf(q) !== -1;
+      btn.hidden = hasInterest(value) || !matchesQuery;
+    });
+  }
+
+  function updateInputState() {
+    var full = interests.length >= MAX_INTERESTS;
+    inputEl.disabled = full;
+    if (full) {
+      inputEl.placeholder = "up to " + MAX_INTERESTS + " interests";
+    } else {
+      inputEl.placeholder = interests.length ? "add another…" : "type a topic or pick a suggestion";
+    }
+  }
+
+  function renderChips() {
+    tagBox.querySelectorAll(".chip").forEach(function (c) { tagBox.removeChild(c); });
+    interests.forEach(function (value) {
+      var chip = document.createElement("span");
+      chip.className = "chip";
+
+      var label = document.createElement("span");
+      label.className = "chip-label";
+      label.textContent = value;
+      chip.appendChild(label);
+
+      var remove = document.createElement("button");
+      remove.type = "button";
+      remove.className = "chip-remove";
+      remove.setAttribute("aria-label", "Remove " + value);
+      remove.textContent = "×";
+      remove.addEventListener("click", function () { removeInterest(value); });
+      chip.appendChild(remove);
+
+      tagBox.insertBefore(chip, inputEl);
+    });
+  }
+
+  function addInterest(raw) {
+    var value = (raw || "").replace(/,/g, " ").trim();
+    if (!value) return;
+    if (value.length > MAX_LEN) value = value.slice(0, MAX_LEN).trim();
+    if (interests.length >= MAX_INTERESTS) {
+      setHint("Up to " + MAX_INTERESTS + " interests.");
+      return;
+    }
+    if (hasInterest(value)) {
+      setHint("“" + value + "” is already in your list.");
+      inputEl.value = "";
+      syncPresets();
+      return;
+    }
+    interests.push(value);
+    inputEl.value = "";
+    setHint("");
+    renderChips();
+    updateInputState();
+    syncPresets();
+  }
+
+  function removeInterest(value) {
+    var lower = value.toLowerCase();
+    interests = interests.filter(function (i) { return i.toLowerCase() !== lower; });
+    setHint("");
+    renderChips();
+    updateInputState();
+    syncPresets();
+    if (!inputEl.disabled) inputEl.focus();
+  }
 
   function clearResults() {
     while (resultsEl.firstChild) resultsEl.removeChild(resultsEl.firstChild);
@@ -544,16 +739,15 @@ for paper in r.json()["papers"]:
   }
 
   function runSearch() {
-    var interests = interestsEl.value.trim();
-    if (!interests) {
-      statusLine("Enter at least one interest to search.");
-      interestsEl.focus();
+    if (interests.length === 0) {
+      statusLine("Add at least one interest to search.");
+      if (!inputEl.disabled) inputEl.focus();
       return;
     }
 
     var days = daysEl.value;
     var max = maxEl.value;
-    var url = origin + "/api/papers?interests=" + encodeURIComponent(interests) +
+    var url = origin + "/api/papers?interests=" + encodeURIComponent(interests.join(",")) +
       "&days=" + encodeURIComponent(days) + "&max=" + encodeURIComponent(max);
 
     fetchBtn.disabled = true;
@@ -582,12 +776,37 @@ for paper in r.json()["papers"]:
   }
 
   fetchBtn.addEventListener("click", runSearch);
-  interestsEl.addEventListener("keydown", function (e) {
-    if (e.key === "Enter") {
+
+  inputEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter" || e.key === ",") {
       e.preventDefault();
-      runSearch();
+      if (inputEl.value.trim()) {
+        addInterest(inputEl.value);
+      } else if (e.key === "Enter") {
+        runSearch();
+      }
+    } else if (e.key === "Backspace" && inputEl.value === "" && interests.length) {
+      e.preventDefault();
+      removeInterest(interests[interests.length - 1]);
     }
   });
+
+  inputEl.addEventListener("input", syncPresets);
+
+  presetsEl.addEventListener("click", function (e) {
+    var btn = e.target.closest(".preset");
+    if (!btn) return;
+    addInterest(btn.getAttribute("data-preset") || "");
+    if (!inputEl.disabled) inputEl.focus();
+  });
+
+  tagBox.addEventListener("click", function (e) {
+    if (e.target === tagBox && !inputEl.disabled) inputEl.focus();
+  });
+
+  renderChips();
+  updateInputState();
+  syncPresets();
 })();
 </script>
 </body>

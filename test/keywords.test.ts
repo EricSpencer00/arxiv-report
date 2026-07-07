@@ -1,10 +1,35 @@
 import { describe, it, expect } from "vitest";
-import { tokenize, keywordScore, CATEGORY_AFFINITY } from "../src/keywords";
+import { tokenize, keywordScore, CATEGORY_AFFINITY, PRESET_INTERESTS } from "../src/keywords";
 
 describe("CATEGORY_AFFINITY", () => {
   it("is exported with expected entries", () => {
     expect(CATEGORY_AFFINITY["formal methods"]).toEqual(["cs.LO", "cs.PL", "cs.SE"]);
     expect(CATEGORY_AFFINITY["llm"]).toEqual(["cs.CL", "cs.AI", "cs.LG"]);
+  });
+});
+
+describe("PRESET_INTERESTS", () => {
+  it("is a non-empty list of case-insensitively unique phrases", () => {
+    expect(Array.isArray(PRESET_INTERESTS)).toBe(true);
+    expect(PRESET_INTERESTS.length).toBeGreaterThan(0);
+    const lower = PRESET_INTERESTS.map((p) => p.toLowerCase());
+    expect(new Set(lower).size).toBe(lower.length);
+  });
+
+  it("keeps every preset within the API's 100-char per-interest limit", () => {
+    for (const p of PRESET_INTERESTS) {
+      expect(p.length).toBeGreaterThan(0);
+      expect(p.length).toBeLessThanOrEqual(100);
+    }
+  });
+
+  it("only suggests topics the keyword engine actually recognizes", () => {
+    const keys = Object.keys(CATEGORY_AFFINITY);
+    for (const p of PRESET_INTERESTS) {
+      const lower = p.toLowerCase();
+      const recognized = keys.some((k) => lower.includes(k));
+      expect(recognized, `preset "${p}" matches no CATEGORY_AFFINITY key`).toBe(true);
+    }
   });
 });
 
