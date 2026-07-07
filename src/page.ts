@@ -196,7 +196,7 @@ for paper in r.json()["papers"]:
     margin-top: 1.5rem;
   }
 
-  form#try-it {
+#try-it-form {
     display: flex;
     flex-wrap: wrap;
     gap: 0.75rem;
@@ -207,13 +207,16 @@ for paper in r.json()["papers"]:
     border-radius: 6px;
   }
 
-  form#try-it .field {
+  #try-it-form .field {
     display: flex;
     flex-direction: column;
     gap: 0.3rem;
+    min-width: 0;
   }
 
-  form#try-it label {
+  #try-it-form .field.grow { flex: 1 1 260px; min-width: 200px; }
+
+  #try-it-form label {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.72rem;
     text-transform: uppercase;
@@ -221,7 +224,7 @@ for paper in r.json()["papers"]:
     color: var(--ink-dim);
   }
 
-  form#try-it input, form#try-it select {
+  #try-it-form input, #try-it-form select {
     font: inherit;
     font-size: 0.95rem;
     padding: 0.5rem 0.6rem;
@@ -229,9 +232,9 @@ for paper in r.json()["papers"]:
     border-radius: 4px;
     background: var(--bg);
     color: var(--ink);
+    width: 100%;
+    height: 2.4rem;
   }
-
-  form#try-it input[type="text"] { flex: 1 1 260px; min-width: 200px; }
 
   button {
     font: inherit;
@@ -286,7 +289,7 @@ for paper in r.json()["papers"]:
     background: var(--code-bg);
     border: 1px solid var(--rule);
     border-radius: 6px;
-    padding: 1rem 1.1rem;
+    padding: 2.6rem 1.1rem 1rem;
     overflow-x: auto;
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
     font-size: 0.85rem;
@@ -361,8 +364,8 @@ for paper in r.json()["papers"]:
 
   <section id="try-it">
     <h2><span class="num">02</span>Try it</h2>
-    <form id="try-it" onsubmit="return false;">
-      <div class="field">
+    <form id="try-it-form" onsubmit="return false;">
+      <div class="field grow">
         <label for="interests">interests</label>
         <input type="text" id="interests" placeholder="formal methods, LLM verification">
       </div>
@@ -540,10 +543,11 @@ for paper in r.json()["papers"]:
     });
   }
 
-  fetchBtn.addEventListener("click", function () {
+  function runSearch() {
     var interests = interestsEl.value.trim();
     if (!interests) {
       statusLine("Enter at least one interest to search.");
+      interestsEl.focus();
       return;
     }
 
@@ -575,6 +579,14 @@ for paper in r.json()["papers"]:
       .then(function () {
         fetchBtn.disabled = false;
       });
+  }
+
+  fetchBtn.addEventListener("click", runSearch);
+  interestsEl.addEventListener("keydown", function (e) {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      runSearch();
+    }
   });
 })();
 </script>
