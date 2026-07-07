@@ -106,6 +106,10 @@ describe("api", () => {
 
     for (const p of body.papers) {
       expect(p.score).toBeGreaterThanOrEqual(body.query.min_score);
+      // Seeded fixtures have no generated tldr; the response must still fall
+      // back to an abstract excerpt rather than surfacing a bare null.
+      expect(typeof p.tldr).toBe("string");
+      expect(p.tldr.length).toBeGreaterThan(0);
     }
 
     expect(body.attribution).toBe(

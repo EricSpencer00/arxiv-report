@@ -12,6 +12,7 @@ import type { NormalizedQuery } from "./cache";
 import { rank } from "./rank";
 import { enrichPapers, budgetRemaining } from "./enrich";
 import { renderDigest } from "./digest";
+import { effectiveTldr } from "./summary";
 import { buildOpenApiDocument } from "./openapi";
 import { ingestTick } from "./ingest";
 import { renderPage } from "./page";
@@ -65,6 +66,11 @@ async function buildPapersResponse(env: Env, q: NormalizedQuery): Promise<Papers
   }));
 
   const enriched = await enrichPapers(env, papers, q.interests);
+  // Never surface a bare null tldr: fall back to the abstract's opening until
+  // a real generated summary lands (lazy enrichment is capped and can lag).
+  for (const paper of enriched) {
+    paper.tldr = effectiveTldr(paper.tldr, paper.abstract);
+  }
 
   const response: PapersResponse = {
     query: {

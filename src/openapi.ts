@@ -62,7 +62,11 @@ export function buildOpenApiDocument(origin: string): Record<string, unknown> {
       published_ts: { type: "integer", description: "Epoch seconds" },
       abs_url: { type: "string", format: "uri" },
       pdf_url: { type: "string", format: "uri" },
-      tldr: { type: ["string", "null"] },
+      tldr: {
+        type: "string",
+        description:
+          "2-3 sentence AI-generated summary when available; otherwise the opening of the abstract as a fallback. Never null.",
+      },
       author_notes: {
         type: ["object", "null"],
         additionalProperties: { type: "string" },
