@@ -139,9 +139,13 @@ export async function fetchPage(
   pageSize: number,
   sinceTs: number,
   contact: string,
-  fetchFn: typeof fetch = fetch
+  fetchFn: typeof fetch = fetch,
+  untilTs?: number
 ): Promise<{ articles: Article[]; totalResults: number }> {
-  const url = buildQueryUrl(start, pageSize, sinceTs);
+  const url =
+    untilTs !== undefined
+      ? buildQueryUrl(start, pageSize, sinceTs, untilTs)
+      : buildQueryUrl(start, pageSize, sinceTs);
   const res = await fetchFn(url, {
     headers: {
       "User-Agent": `arxiv-report/1.0 (${contact})`,

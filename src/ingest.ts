@@ -18,6 +18,11 @@ interface IngestState {
   sinceTs: number;
   done: boolean;
   total: number | null;
+  // Optional upper bound on submittedDate, used for manually-driven historical
+  // backfills chunked by day (arXiv's search API errors past start~10000, so a
+  // wide-open date range can't be paged through in one go). Regular daily
+  // ingest never sets this and keeps the default open-ended upper bound.
+  untilTs?: number;
 }
 
 function todayUtc(nowMs: number): string {
@@ -83,7 +88,14 @@ export async function ingestTick(
     return { action: "maintenance" };
   }
 
-  const { articles, totalResults } = await fetchPage(state.start, PAGE_SIZE, state.sinceTs, env.CONTACT, fetchFn);
+  const { articles, totalResults } = await fetchPage(
+    state.start,
+    PAGE_SIZE,
+    state.sinceTs,
+    env.CONTACT,
+    fetchFn,
+    state.untilTs
+  );
 
   await upsertArticles(env.DB, articles);
 
