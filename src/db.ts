@@ -111,24 +111,42 @@ export async function getByWindow(
   return articles;
 }
 
+// D1 caps bound parameters per statement at 100, so IN-clause queries over an
+// unbounded id list (e.g. merged Vectorize matches across several interests)
+// must be chunked.
+const SQL_VARIABLE_LIMIT = 100;
+
+function chunk<T>(items: T[], size: number): T[][] {
+  const batches: T[][] = [];
+  for (let i = 0; i < items.length; i += size) {
+    batches.push(items.slice(i, i + size));
+  }
+  return batches;
+}
+
 export async function getByIds(db: D1Database, ids: string[]): Promise<Article[]> {
   if (ids.length === 0) return [];
-  const placeholders = ids.map(() => "?").join(",");
-  const { results } = await db
-    .prepare(`SELECT * FROM articles WHERE id IN (${placeholders})`)
-    .bind(...ids)
-    .all<ArticleRow>();
-  const byId = new Map((results ?? []).map((r) => [r.id, rowToArticle(r)]));
+  const byId = new Map<string, Article>();
+  for (const batch of chunk(ids, SQL_VARIABLE_LIMIT)) {
+    const placeholders = batch.map(() => "?").join(",");
+    const { results } = await db
+      .prepare(`SELECT * FROM articles WHERE id IN (${placeholders})`)
+      .bind(...batch)
+      .all<ArticleRow>();
+    for (const r of results ?? []) byId.set(r.id, rowToArticle(r));
+  }
   return ids.map((id) => byId.get(id)).filter((a): a is Article => a !== undefined);
 }
 
 export async function markEmbedded(db: D1Database, ids: string[]): Promise<void> {
   if (ids.length === 0) return;
-  const placeholders = ids.map(() => "?").join(",");
-  await db
-    .prepare(`UPDATE articles SET embedded = 1 WHERE id IN (${placeholders})`)
-    .bind(...ids)
-    .run();
+  for (const batch of chunk(ids, SQL_VARIABLE_LIMIT)) {
+    const placeholders = batch.map(() => "?").join(",");
+    await db
+      .prepare(`UPDATE articles SET embedded = 1 WHERE id IN (${placeholders})`)
+      .bind(...batch)
+      .run();
+  }
 }
 
 export async function saveTldr(db: D1Database, id: string, tldr: string): Promise<void> {

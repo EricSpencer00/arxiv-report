@@ -95,9 +95,12 @@ export async function pruneVectors(vectors: VectorizeIndex, db: D1Database): Pro
     await vectors.deleteByIds(batch);
   }
 
-  const placeholders = ids.map(() => "?").join(",");
-  await db
-    .prepare(`UPDATE articles SET embedded = 2 WHERE id IN (${placeholders})`)
-    .bind(...ids)
-    .run();
+  // D1 caps bound parameters per statement at 100, same as Vectorize's delete cap.
+  for (const batch of chunk(ids, DELETE_BATCH_SIZE)) {
+    const placeholders = batch.map(() => "?").join(",");
+    await db
+      .prepare(`UPDATE articles SET embedded = 2 WHERE id IN (${placeholders})`)
+      .bind(...batch)
+      .run();
+  }
 }

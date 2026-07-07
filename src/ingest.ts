@@ -44,16 +44,24 @@ async function saveState(env: Env, state: IngestState): Promise<void> {
   await env.CACHE.put(STATE_KEY, JSON.stringify(state));
 }
 
+// D1 caps bound parameters per statement at 100; PAGE_SIZE is currently 100 so a
+// single call never exceeds it, but chunk defensively in case that ever changes.
+const SQL_VARIABLE_LIMIT = 100;
+
 /** The lookback window overlaps prior days; skip articles that already have vectors. */
 async function filterUnembedded<T extends { id: string }>(env: Env, articles: T[]): Promise<T[]> {
   if (articles.length === 0) return [];
-  const placeholders = articles.map(() => "?").join(",");
-  const { results } = await env.DB.prepare(
-    `SELECT id FROM articles WHERE id IN (${placeholders}) AND embedded = 0`
-  )
-    .bind(...articles.map((a) => a.id))
-    .all<{ id: string }>();
-  const pendingIds = new Set((results ?? []).map((r) => r.id));
+  const pendingIds = new Set<string>();
+  for (let i = 0; i < articles.length; i += SQL_VARIABLE_LIMIT) {
+    const batch = articles.slice(i, i + SQL_VARIABLE_LIMIT);
+    const placeholders = batch.map(() => "?").join(",");
+    const { results } = await env.DB.prepare(
+      `SELECT id FROM articles WHERE id IN (${placeholders}) AND embedded = 0`
+    )
+      .bind(...batch.map((a) => a.id))
+      .all<{ id: string }>();
+    for (const r of results ?? []) pendingIds.add(r.id);
+  }
   return articles.filter((a) => pendingIds.has(a.id));
 }
 
