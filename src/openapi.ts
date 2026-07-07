@@ -1,3 +1,5 @@
+import { ATTRIBUTION } from "./attribution";
+
 export function buildOpenApiDocument(origin: string): Record<string, unknown> {
   const queryParameters = [
     {
@@ -152,8 +154,7 @@ export function buildOpenApiDocument(origin: string): Record<string, unknown> {
       version: "1.0.0",
       description:
         "A personalized arXiv digest API. Ranks recent arXiv papers by relevance to your stated interests, " +
-        "using semantic (embedding-based) ranking when available and falling back to keyword matching otherwise. " +
-        "Thank you to arXiv for use of its open access interoperability.",
+        `using semantic (embedding-based) ranking when available and falling back to keyword matching otherwise. ${ATTRIBUTION}`,
     },
     servers: [{ url: origin }],
     paths: {

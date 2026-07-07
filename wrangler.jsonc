@@ -5,7 +5,7 @@
   "account_id": "27b63de7643a2b3fdbefe3c7bdbbc610",
   "triggers": { "crons": ["*/2 6-11 * * *"] },
   "workers_dev": false,
-  "routes": [{ "pattern": "arxiv.ericspencer.us", "custom_domain": true }],
+  "routes": [{ "pattern": "paper-digest.ericspencer.us", "custom_domain": true }],
   "observability": { "enabled": true },
   "ai": { "binding": "AI" },
   "d1_databases": [{ "binding": "DB", "database_name": "arxiv-report", "database_id": "f1769b20-6d06-4ee4-969b-ab7489b7cd6d" }],

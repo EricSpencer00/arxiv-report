@@ -16,9 +16,9 @@ import { effectiveTldr } from "./summary";
 import { buildOpenApiDocument } from "./openapi";
 import { ingestTick } from "./ingest";
 import { renderPage } from "./page";
+import { ATTRIBUTION } from "./attribution";
 import type { Env, PapersResponse, RankedPaper } from "./types";
 
-const ATTRIBUTION = "Thank you to arXiv for use of its open access interoperability.";
 const STATE_KEY = "ingest:state";
 
 const app = new Hono<{ Bindings: Env }>();

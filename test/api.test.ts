@@ -113,7 +113,9 @@ describe("api", () => {
     }
 
     expect(body.attribution).toBe(
-      "Thank you to arXiv for use of its open access interoperability."
+      "Thank you to arXiv for use of its open access interoperability. This service was not " +
+        "reviewed or approved by, nor does it necessarily express or reflect the policies or " +
+        "opinions of, arXiv."
     );
   });
 

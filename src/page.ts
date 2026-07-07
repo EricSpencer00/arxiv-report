@@ -1,4 +1,4 @@
-const ATTRIBUTION = "Thank you to arXiv for use of its open access interoperability.";
+import { ATTRIBUTION } from "./attribution";
 
 function agentPrompt(origin: string): string {
   return `You now have access to the arxiv-report API for fresh research papers.

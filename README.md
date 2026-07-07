@@ -2,7 +2,7 @@
 
 Interest-matched arXiv papers for your AI agent. Free, cached, honest about relevance.
 
-**Live:** https://arxiv.ericspencer.us
+**Live:** https://paper-digest.ericspencer.us
 
 A Cloudflare Worker that ingests every new arXiv submission daily (via the official arXiv API), embeds abstracts with a 384-dim model, and serves the top ≤10 papers matching plain-English interests — with a deterministic keyword fallback whenever AI quota is exhausted, so the API never breaks.
 
@@ -10,10 +10,10 @@ A Cloudflare Worker that ingests every new arXiv submission daily (via the offic
 
 ```bash
 # JSON
-curl "https://arxiv.ericspencer.us/api/papers?interests=formal+methods,llm+verification&days=7&max=10"
+curl "https://paper-digest.ericspencer.us/api/papers?interests=formal+methods,llm+verification&days=7&max=10"
 
 # Markdown digest (agent/aggregator friendly)
-curl "https://arxiv.ericspencer.us/api/digest?interests=formal+methods,llm+verification"
+curl "https://paper-digest.ericspencer.us/api/digest?interests=formal+methods,llm+verification"
 ```
 
 | Param | Meaning | Range / default |
@@ -24,7 +24,7 @@ curl "https://arxiv.ericspencer.us/api/digest?interests=formal+methods,llm+verif
 | `min_score` | relevance threshold | 0–1, default 0.62 |
 | `categories` | arXiv category filter, e.g. `cs.LO,cs.PL` | optional |
 
-Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://arxiv.ericspencer.us/api/openapi.json). Health: `/api/health`.
+Responses include per-paper `score`, `tldr`, `relevance_blurb`, `author_notes`, and a `ranking` field (`semantic` or `keyword`) telling you which engine ranked them. Papers below the threshold are **dropped, not padded** — an empty list means nothing relevant appeared, not an error. Full schema: [/api/openapi.json](https://paper-digest.ericspencer.us/api/openapi.json). Health: `/api/health`.
 
 ### Give it to your agent
 
@@ -32,12 +32,12 @@ Paste this into any AI agent (OpenClaw, Claude, a news aggregator) and it can in
 
 ```
 You now have access to the arxiv-report API for fresh research papers.
-Base URL: https://arxiv.ericspencer.us
-To get papers: GET https://arxiv.ericspencer.us/api/papers?interests=<comma-separated interest phrases>&days=7&max=10
+Base URL: https://paper-digest.ericspencer.us
+To get papers: GET https://paper-digest.ericspencer.us/api/papers?interests=<comma-separated interest phrases>&days=7&max=10
 - interests: required. Plain-English phrases, e.g. "formal methods,LLM verification"
 - days: 1-30 lookback window (default 7). max: 1-10 results (default 10)
 Response is JSON: papers[] with title, authors, abstract, tldr, relevance_blurb, score (0-1), abs_url.
-For a ready-made Markdown digest instead: GET https://arxiv.ericspencer.us/api/digest?interests=...
+For a ready-made Markdown digest instead: GET https://paper-digest.ericspencer.us/api/digest?interests=...
 Papers below the relevance threshold are omitted — an empty list means nothing relevant appeared, not an error.
 When the user asks for their research digest, call this API with their stated interests and present the results with links.
 ```
@@ -60,7 +60,7 @@ When the user asks for their research digest, call this API with their stated in
     "abstract": "...", "categories": ["cs.LO"], "published": "2026-07-02T17:12:00Z",
     "abs_url": "https://arxiv.org/abs/2607.01234v1", "pdf_url": "https://arxiv.org/pdf/2607.01234v1"
   }],
-  "attribution": "Thank you to arXiv for use of its open access interoperability."
+  "attribution": "Thank you to arXiv for use of its open access interoperability. This service was not reviewed or approved by, nor does it necessarily express or reflect the policies or opinions of, arXiv."
 }
 ```
 
@@ -88,6 +88,6 @@ Provisioning (already done for the live instance): `wrangler d1 create arxiv-rep
 
 Data comes exclusively from the official arXiv API: serial requests spaced minutes apart, descriptive User-Agent, metadata + abstracts only, every link points back to arxiv.org, no PDF rehosting, and responses are aggressively cached so identical queries cost arXiv nothing.
 
-Thank you to arXiv for use of its open access interoperability.
+Thank you to arXiv for use of its open access interoperability. This service was not reviewed or approved by, nor does it necessarily express or reflect the policies or opinions of, arXiv. Not affiliated with or endorsed by arXiv or Cornell University.
 
 Design docs: [spec](docs/superpowers/specs/2026-07-06-arxiv-report-design.md) · [plan](docs/superpowers/plans/2026-07-06-arxiv-report.md)
