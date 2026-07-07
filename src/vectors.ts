@@ -5,7 +5,9 @@ export const MAX_VECTORS = 12500;
 
 const EMBED_BATCH_SIZE = 50;
 const UPSERT_BATCH_SIZE = 500;
-const DELETE_BATCH_SIZE = 1000;
+// Vectorize's deleteByIds enforces a much lower cap than upsert/query (observed
+// live: "max id count is 100, got 1000" — the plan's assumed 1000 was wrong).
+const DELETE_BATCH_SIZE = 100;
 const PRUNE_AGE_SECONDS = 8 * 86400;
 
 export class EmbedUnavailableError extends Error {}
