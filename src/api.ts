@@ -1,6 +1,13 @@
 import { Hono } from "hono";
 import { cors } from "hono/cors";
-import { normalizeQuery, cacheKeyFor, secondsUntilNextIngest, getCached, putCached } from "./cache";
+import {
+  normalizeQuery,
+  cacheKeyFor,
+  secondsUntilNextIngest,
+  getCached,
+  putCached,
+  deleteCached,
+} from "./cache";
 import type { NormalizedQuery } from "./cache";
 import { rank } from "./rank";
 import { enrichPapers, budgetRemaining } from "./enrich";
@@ -157,6 +164,28 @@ app.post("/api/admin/ingest", async (c) => {
   } catch (e) {
     return c.json({ error: String(e) }, 500);
   }
+});
+
+// Invalidates cached /api/papers and /api/digest responses for a given query, so
+// out-of-band data fixes (e.g. a manual tldr backfill) are visible immediately
+// instead of waiting out the cache TTL (which runs until the next ingest window).
+app.post("/api/admin/cache/purge", async (c) => {
+  const secret = c.env.ADMIN_SECRET;
+  const authHeader = c.req.header("Authorization");
+  if (!secret || authHeader !== `Bearer ${secret}`) {
+    return c.json({ error: "unauthorized" }, 401);
+  }
+
+  const params = new URL(c.req.url).searchParams;
+  const result = normalizeQuery(params, Number(c.env.MIN_SCORE));
+  if ("error" in result) {
+    return c.json({ error: result.error }, 400);
+  }
+
+  const papersDeleted = await deleteCached(cacheKeyFor(result, "/api/papers"));
+  const digestDeleted = await deleteCached(cacheKeyFor({ ...result, format: "md" }, "/api/digest"));
+
+  return c.json({ purged: { papers: papersDeleted, digest: digestDeleted } });
 });
 
 export default app;

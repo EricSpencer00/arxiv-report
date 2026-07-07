@@ -121,3 +121,8 @@ export async function putCached(key: Request, response: Response, ttl: number): 
   cached.headers.set("Cache-Control", `public, max-age=${ttl}`);
   await cache.put(key, cached);
 }
+
+export async function deleteCached(key: Request): Promise<boolean> {
+  const cache = (caches as unknown as { default: Cache }).default;
+  return cache.delete(key);
+}

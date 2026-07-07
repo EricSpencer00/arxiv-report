@@ -174,6 +174,36 @@ describe("api", () => {
     expect(body.error).toBe("unauthorized");
   });
 
+  it("POST /api/admin/cache/purge without auth returns 401", async () => {
+    const res = await SELF.fetch(
+      "https://x/api/admin/cache/purge?interests=purge+test+topic&days=7",
+      { method: "POST" }
+    );
+    expect(res.status).toBe(401);
+    const body = (await res.json()) as { error: string };
+    expect(body.error).toBe("unauthorized");
+  });
+
+  it("POST /api/admin/cache/purge clears a cached /api/papers entry", async () => {
+    const url = "https://x/api/papers?interests=purge+cache+test&days=7";
+    const first = await SELF.fetch(url);
+    expect(first.headers.get("X-Cache")).toBe("MISS");
+
+    const second = await SELF.fetch(url);
+    expect(second.headers.get("X-Cache")).toBe("HIT");
+
+    const purgeRes = await SELF.fetch(
+      "https://x/api/admin/cache/purge?interests=purge+cache+test&days=7",
+      { method: "POST", headers: { Authorization: `Bearer ${env.ADMIN_SECRET}` } }
+    );
+    expect(purgeRes.status).toBe(200);
+    const purgeBody = (await purgeRes.json()) as { purged: { papers: boolean; digest: boolean } };
+    expect(purgeBody.purged.papers).toBe(true);
+
+    const third = await SELF.fetch(url);
+    expect(third.headers.get("X-Cache")).toBe("MISS");
+  });
+
   it("CORS: GET response includes access-control-allow-origin: *", async () => {
     const res = await SELF.fetch(
       "https://x/api/papers?interests=cors+test+topic+unique&days=7"
