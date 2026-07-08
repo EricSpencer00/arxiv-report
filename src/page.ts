@@ -1,5 +1,5 @@
 import { ATTRIBUTION } from "./attribution";
-import { PRESET_INTERESTS } from "./keywords";
+import { ARXIV_SUBJECTS, ALL_INTERESTS, DEFAULT_INTERESTS } from "./taxonomy";
 
 function agentPrompt(origin: string): string {
   return `You now have access to the arxiv-report API for fresh research papers.
@@ -39,10 +39,22 @@ r = requests.get(
 for paper in r.json()["papers"]:
     print(f"{paper['score']:.2f}", paper["title"], paper["abs_url"])`;
 
-  const presetButtons = PRESET_INTERESTS.map(
-    (p) =>
-      `<button type="button" class="preset" data-preset="${escapeHtml(p)}">${escapeHtml(p)}</button>`,
-  ).join("\n      ");
+  const presetPill = (topic: string) =>
+    `<button type="button" class="preset" data-preset="${escapeHtml(topic)}">${escapeHtml(topic)}</button>`;
+
+  const featuredButtons = DEFAULT_INTERESTS.map(presetPill).join("\n        ");
+
+  const groupBlocks = ARXIV_SUBJECTS.map(
+    (g) =>
+      `<div class="preset-group" data-group="${escapeHtml(g.group)}">
+          <h4 class="preset-group-title">${escapeHtml(g.group)}</h4>
+          <div class="preset-cloud">
+            ${g.topics.map(presetPill).join("\n            ")}
+          </div>
+        </div>`,
+  ).join("\n        ");
+
+  const allTopicsCount = ALL_INTERESTS.length;
 
   return `<!doctype html>
 <html lang="en">
@@ -77,6 +89,10 @@ for paper in r.json()["papers"]:
   }
 
   * { box-sizing: border-box; }
+
+  /* Author display rules (e.g. .preset-cloud { display: flex }) otherwise
+     override the UA [hidden] rule, so enforce it globally. */
+  [hidden] { display: none !important; }
 
   html { -webkit-text-size-adjust: 100%; }
 
@@ -309,12 +325,14 @@ for paper in r.json()["papers"]:
   }
   .chip-remove:hover { background: var(--accent); color: var(--bg); filter: none; }
 
-  .presets {
+  .presets { margin-top: 0.9rem; }
+
+  .preset-head {
     display: flex;
+    align-items: baseline;
     flex-wrap: wrap;
-    align-items: center;
-    gap: 0.45rem;
-    margin-top: 0.9rem;
+    gap: 0.6rem;
+    margin-bottom: 0.55rem;
   }
   .presets-label {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -322,7 +340,25 @@ for paper in r.json()["papers"]:
     text-transform: uppercase;
     letter-spacing: 0.08em;
     color: var(--ink-dim);
-    margin-right: 0.1rem;
+  }
+  .presets-toggle {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    letter-spacing: 0.04em;
+    padding: 0;
+    background: transparent;
+    color: var(--accent);
+    border: none;
+    border-radius: 0;
+    cursor: pointer;
+  }
+  .presets-toggle:hover { text-decoration: underline; filter: none; }
+
+  .preset-cloud {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.45rem;
   }
   .preset {
     font: inherit;
@@ -337,6 +373,25 @@ for paper in r.json()["papers"]:
   }
   .preset:hover { border-color: var(--accent); color: var(--accent); filter: none; }
   .preset[hidden] { display: none; }
+
+  #presets-all { margin-top: 0.4rem; }
+  .preset-group { margin-top: 1.1rem; }
+  .preset-group[hidden] { display: none; }
+  .preset-group-title {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.72rem;
+    text-transform: uppercase;
+    letter-spacing: 0.08em;
+    color: var(--ink-dim);
+    margin: 0 0 0.5rem;
+    font-weight: 600;
+  }
+  .presets-empty {
+    font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+    font-size: 0.78rem;
+    color: var(--ink-dim);
+    margin: 0.4rem 0 0;
+  }
 
   .interest-hint {
     font-family: ui-monospace, "SF Mono", Menlo, Consolas, monospace;
@@ -489,8 +544,17 @@ for paper in r.json()["papers"]:
       <button type="button" id="fetch-btn">Fetch papers</button>
     </form>
     <div id="interest-presets" class="presets" aria-label="Suggested topics">
-      <span class="presets-label">suggestions</span>
-      ${presetButtons}
+      <div class="preset-head">
+        <span class="presets-label">suggestions</span>
+        <button type="button" id="presets-toggle" class="presets-toggle" aria-expanded="false" aria-controls="presets-all">Show all ${allTopicsCount} topics ▾</button>
+      </div>
+      <div id="presets-featured" class="preset-cloud">
+        ${featuredButtons}
+      </div>
+      <div id="presets-all" hidden>
+        ${groupBlocks}
+      </div>
+      <p id="presets-empty" class="presets-empty" hidden>No matching topics.</p>
     </div>
     <p id="interest-hint" class="interest-hint" role="status" aria-live="polite"></p>
     <div id="results"></div>
@@ -578,10 +642,16 @@ for paper in r.json()["papers"]:
   var inputEl = document.getElementById("interest-input");
   var presetsEl = document.getElementById("interest-presets");
   var hintEl = document.getElementById("interest-hint");
+  var featuredWrap = document.getElementById("presets-featured");
+  var allWrap = document.getElementById("presets-all");
+  var toggleBtn = document.getElementById("presets-toggle");
+  var emptyEl = document.getElementById("presets-empty");
 
   var MAX_INTERESTS = 5;
   var MAX_LEN = 100;
+  var ALL_COUNT = ${allTopicsCount};
   var interests = [];
+  var expanded = false;
 
   function hasInterest(value) {
     var lower = value.toLowerCase();
@@ -592,13 +662,36 @@ for paper in r.json()["papers"]:
     hintEl.textContent = text || "";
   }
 
-  function syncPresets() {
+  function refreshPresets() {
     var q = inputEl.value.trim().toLowerCase();
+    var searching = q.length > 0;
+
+    // Per-pill: hide if already picked, or (while searching) if it doesn't match.
     presetsEl.querySelectorAll(".preset").forEach(function (btn) {
       var value = btn.getAttribute("data-preset") || "";
-      var matchesQuery = q === "" || value.toLowerCase().indexOf(q) !== -1;
-      btn.hidden = hasInterest(value) || !matchesQuery;
+      var matches = !searching || value.toLowerCase().indexOf(q) !== -1;
+      btn.hidden = hasInterest(value) || !matches;
     });
+
+    // While searching we reveal the full grouped list so matches from any field
+    // surface; otherwise the featured row shows until the user expands.
+    var showAll = expanded || searching;
+    featuredWrap.hidden = showAll;
+    allWrap.hidden = !showAll;
+
+    // Drop field headings that have no visible pills (e.g. filtered out by search).
+    var anyVisible = false;
+    allWrap.querySelectorAll(".preset-group").forEach(function (grp) {
+      var visible = grp.querySelectorAll(".preset:not([hidden])").length > 0;
+      grp.hidden = !visible;
+      if (visible) anyVisible = true;
+    });
+
+    toggleBtn.hidden = searching;
+    toggleBtn.setAttribute("aria-expanded", expanded ? "true" : "false");
+    toggleBtn.textContent = expanded ? "Show fewer ▴" : ("Show all " + ALL_COUNT + " topics ▾");
+
+    emptyEl.hidden = !(searching && !anyVisible);
   }
 
   function updateInputState() {
@@ -635,7 +728,11 @@ for paper in r.json()["papers"]:
   }
 
   function addInterest(raw) {
+    // Commas separate interests in the API, so fold any in a topic name to spaces,
+    // then collapse the resulting whitespace. split/filter/join avoids a regex
+    // escape (\\s) — inside this template-literal script a raw \\s becomes "s".
     var value = (raw || "").replace(/,/g, " ").trim();
+    value = value.split(" ").filter(function (part) { return part.length > 0; }).join(" ");
     if (!value) return;
     if (value.length > MAX_LEN) value = value.slice(0, MAX_LEN).trim();
     if (interests.length >= MAX_INTERESTS) {
@@ -645,7 +742,7 @@ for paper in r.json()["papers"]:
     if (hasInterest(value)) {
       setHint("“" + value + "” is already in your list.");
       inputEl.value = "";
-      syncPresets();
+      refreshPresets();
       return;
     }
     interests.push(value);
@@ -653,7 +750,7 @@ for paper in r.json()["papers"]:
     setHint("");
     renderChips();
     updateInputState();
-    syncPresets();
+    refreshPresets();
   }
 
   function removeInterest(value) {
@@ -662,7 +759,7 @@ for paper in r.json()["papers"]:
     setHint("");
     renderChips();
     updateInputState();
-    syncPresets();
+    refreshPresets();
     if (!inputEl.disabled) inputEl.focus();
   }
 
@@ -791,7 +888,12 @@ for paper in r.json()["papers"]:
     }
   });
 
-  inputEl.addEventListener("input", syncPresets);
+  inputEl.addEventListener("input", refreshPresets);
+
+  toggleBtn.addEventListener("click", function () {
+    expanded = !expanded;
+    refreshPresets();
+  });
 
   presetsEl.addEventListener("click", function (e) {
     var btn = e.target.closest(".preset");
@@ -806,7 +908,7 @@ for paper in r.json()["papers"]:
 
   renderChips();
   updateInputState();
-  syncPresets();
+  refreshPresets();
 })();
 </script>
 </body>

@@ -37,26 +37,6 @@ export const CATEGORY_AFFINITY: Record<string, string[]> = {
   compilers: ["cs.PL"],
 };
 
-// Curated, display-cased interest suggestions for the landing page.
-// Every entry is chosen so its lowercase form contains a CATEGORY_AFFINITY key,
-// i.e. these are topics the keyword engine genuinely recognizes — no dead suggestions.
-export const PRESET_INTERESTS: string[] = [
-  "Formal methods",
-  "Theorem proving",
-  "Model checking",
-  "LLM agents",
-  "Language models",
-  "Machine learning",
-  "Reinforcement learning",
-  "Computer vision",
-  "Robotics",
-  "Security",
-  "Cryptography",
-  "Quantum computing",
-  "Databases",
-  "Compilers",
-];
-
 export function tokenize(text: string): string[] {
   return text
     .toLowerCase()
