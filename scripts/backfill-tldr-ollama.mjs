@@ -35,8 +35,9 @@ function sqlEscape(s) {
   return s.replace(/'/g, "''");
 }
 
-function flushBatch(statements) {
+function flushBatch(statements, attempt = 1) {
   if (!statements.length) return;
+  const MAX_ATTEMPTS = 4;
   const file = join(tmpdir(), `tldr-batch-${Date.now()}.sql`);
   writeFileSync(file, statements.join("\n"));
   try {
@@ -44,6 +45,14 @@ function flushBatch(statements) {
       stdio: "inherit",
       maxBuffer: 1024 * 1024 * 100,
     });
+  } catch (err) {
+    if (attempt >= MAX_ATTEMPTS) throw err;
+    const backoffMs = 5000 * attempt;
+    console.error(
+      `  batch write failed (attempt ${attempt}/${MAX_ATTEMPTS}), retrying in ${backoffMs / 1000}s...`
+    );
+    execSync(`sleep ${backoffMs / 1000}`);
+    flushBatch(statements, attempt + 1);
   } finally {
     unlinkSync(file);
   }
